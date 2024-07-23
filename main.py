@@ -20,7 +20,7 @@ def add_transaction():
     
     # Date validation
     while True:
-        date = input("Date (YYYY-MM-DD): ")
+        date = input("Date (YYYY-MM-DD): ").strip()
         if date.lower() == 'cancel':
             print("Operation cancelled. Returning to main menu...")
             return
@@ -31,7 +31,7 @@ def add_transaction():
 
     # Amount validation
     while True:
-        amount = input("Amount: ")
+        amount = input("Amount: ").strip()
         if amount.lower() == 'cancel':
             print("Operation cancelled. Returning to main menu...")
             return
@@ -42,7 +42,7 @@ def add_transaction():
 
     # Category validation
     while True:
-        category = input("Category (e.g., Groceries, Utilities): ")
+        category = input("Category (e.g., Groceries, Utilities): ").strip()
         if category.lower() == 'cancel':
             print("Operation cancelled. Returning to main menu...")
             return
@@ -54,7 +54,7 @@ def add_transaction():
     transaction = {
         "id": transaction_id_counter,
         "date": date,
-        "amount": '$' + amount,
+        "amount": float(amount),  # store as numeric for easier comparison
         "category": category,
     }
     transactions.append(transaction)
@@ -70,9 +70,12 @@ def view_transactions():
     print("                 VIEW TRANSACTIONS                    ")
     print("=====================================================")
     print("Filter by:")
-    print("[1] Date [2] Category [3] Amount [4] No Filter - View All")
-    filter_choice = input("Enter your choice: ")
-
+    print("[1] Date")
+    print("[2] Category")
+    print("[3] Amount")
+    print("[4] No Filter - View All")
+    print("=====================================================")
+    filter_choice = input("Select an option by entering a number: ")
     filter_options = {
         '1': 'date',
         '2': 'category',
@@ -85,15 +88,21 @@ def view_transactions():
     if filter_type == 'none':
         for transaction in transactions:
             print("-----------------------------------------------------")
-            print(f"ID: {transaction['id']}, Date: {transaction['date']}, Amount: {transaction['amount']}, Category: {transaction['category']}")
+            print(f"ID: {transaction['id']}, Date: {transaction['date']}, Amount: ${transaction['amount']:.2f}, Category: {transaction['category']}")
     else:
-        filter_value = input(f"Enter the {filter_type}: ")
+        filter_value = input(f"Enter the {filter_type}: ").strip().lower()
         found = False
         for transaction in transactions:
-            if str(transaction[filter_type]).lower() == filter_value.lower():
-                print("-----------------------------------------------------")
-                print(f"ID: {transaction['id']}, Date: {transaction['date']}, Amount: {transaction['amount']}, Category: {transaction['category']}")
-                found = True
+            if filter_type == 'amount':
+                if abs(transaction[filter_type] - float(filter_value)) < 0.01:  # Example of numeric comparison for amount
+                    found = True
+                    print("-----------------------------------------------------")
+                    print(f"ID: {transaction['id']}, Date: {transaction['date']}, Amount: ${transaction['amount']:.2f}, Category: {transaction['category']}")
+            else:
+                if filter_value in transaction[filter_type].lower():  # Partial match for date and category
+                    found = True
+                    print("-----------------------------------------------------")
+                    print(f"ID: {transaction['id']}, Date: {transaction['date']}, Amount: ${transaction['amount']:.2f}, Category: {transaction['category']}")
         if not found:
             print("-----------------------------------------------------")
             print("No transactions found with the given filter.")
@@ -122,20 +131,16 @@ def edit_transaction():
             found = True
             print("-----------------------------------------------------")
             print(f"Editing Transaction ID: {transaction_id} \n(press Enter to keep current information)")
-            new_date = input(f"New Date (current: {transaction['date']}): ") or transaction['date']
-            new_amount = input(f"New Amount (current: {transaction['amount']}): ").strip()
+            new_date = input(f"New Date (current: {transaction['date']}): ").strip() or transaction['date']
+            new_amount = input(f"New Amount (current: ${transaction['amount']:.2f}): ").strip()
             if new_amount:
                 if not re.match(r'^\d+(\.\d{1,2})?$', new_amount):
                     print("Invalid amount format. Keeping the current amount.")
-                    new_amount = transaction['amount']
                 else:
-                    new_amount = f'${new_amount}'
-            else:
-                new_amount = transaction['amount']
-            new_category = input(f"New Category (current: {transaction['category']}): ") or transaction['category']
+                    transaction['amount'] = float(new_amount)
+            new_category = input(f"New Category (current: {transaction['category']}): ").strip() or transaction['category']
 
             transaction['date'] = new_date
-            transaction['amount'] = new_amount
             transaction['category'] = new_category
             print("=====================================================")
             print("Transaction updated successfully!")
