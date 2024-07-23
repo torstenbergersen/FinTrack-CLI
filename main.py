@@ -131,17 +131,30 @@ def edit_transaction():
             found = True
             print("-----------------------------------------------------")
             print(f"Editing Transaction ID: {transaction_id} \n(press Enter to keep current information)")
-            new_date = input(f"New Date (current: {transaction['date']}): ").strip() or transaction['date']
+
+            # Date validation
+            new_date = input(f"New Date (current: {transaction['date']}): ").strip()
+            if new_date:
+                if valid_date(new_date):
+                    transaction['date'] = new_date
+                else:
+                    print("Invalid date format. Keeping the current date.")
+            
+            # Amount validation
             new_amount = input(f"New Amount (current: ${transaction['amount']:.2f}): ").strip()
             if new_amount:
-                if not re.match(r'^\d+(\.\d{1,2})?$', new_amount):
-                    print("Invalid amount format. Keeping the current amount.")
-                else:
+                if re.match(r'^\d+(\.\d{1,2})?$', new_amount):
                     transaction['amount'] = float(new_amount)
-            new_category = input(f"New Category (current: {transaction['category']}): ").strip() or transaction['category']
-
-            transaction['date'] = new_date
-            transaction['category'] = new_category
+                else:
+                    print("Invalid amount format. Keeping the current amount.")
+            
+            # Category validation
+            new_category = input(f"New Category (current: {transaction['category']}): ").strip()
+            if new_category:
+                transaction['category'] = new_category
+            else:
+                print("Invalid category. Keeping the current category.")
+                
             print("=====================================================")
             print("Transaction updated successfully!")
             break
