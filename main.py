@@ -6,7 +6,7 @@ context = zmq.Context()
 
 def send_request(service, action, data=None):
     socket = context.socket(zmq.REQ)
-    socket.connect(f"ipx:///tmp/{service}")
+    socket.connect(f"ipc:///tmp/{service}")
     request = {"action": action, "data": data}
     socket.send_json(request)
     response = socket.recv_json()
@@ -180,21 +180,36 @@ def edit_transaction():
 
 def convert_currency():
     print("\n=====================================================")
-    print("                CURRENCY CONVERTER                    ")
+    print("     CURRENCY CONVERTER (USD, JPY, GBP, EUR)         ")
     print("=====================================================")
     source_currency = input("Enter source currency code: ").upper()
     target_currency = input("Enter target currency code: ").upper()
     try:
-        amount = float(input("ENter amount to convert: "))
+        amount = float(input("Enter amount to convert: "))
     except ValueError:
         print("Invalid amount. Please enter a number.")
         return
     
-    respone = send_request("currency_converter", "convert_currency", {
-        "source_currency": source_currency,
-        "target_currency": target_currency,
-        "amount": amount
-    })
+    # Connect to the currency converter service
+    socket = context.socket(zmq.REQ)
+    socket.connect("ipc:///tmp/currency_converter")
+
+    # Prepare the request
+    request = {
+        "action": "convert_currency",
+        "data": {
+            "source_currency": source_currency,
+            "target_currency": target_currency,
+            "amount": amount
+        }
+    }
+
+    # Send the request and receive the response
+    socket.send_json(request)
+    response = socket.recv_json()
+
+    # Close the socket
+    socket.close()
 
     if "error" in response:
         print(f"Error: {reponse['error']}")
@@ -205,6 +220,86 @@ def convert_currency():
     print("Returning to Main Menu...")
     print("=====================================================\n")
 
+
+def view_financial_report():
+    print("\n=====================================================")
+    print("               FINANCIAL REPORT                       ")
+    print("=====================================================")
+
+    reponse = send_request("financial_report", "generate_report", transactions)
+
+    print(f"Total Spending: ${reponse['total_spending']:.2f}")
+    print("\nCategory Breakdown:")
+    for category, amount in reponse['category_breakdown'].items():
+        print(f"{category}: ${amount:.2f}")
+
+    print("=====================================================")
+    print("Returning to Main Menu...")
+    print("=====================================================\n")
+
+def set_financial_goal():
+    print("\n=====================================================")
+    print("               SET FINANCIAL GOAL                     ")
+    print("=====================================================")
+    category = input("Enter category for the goal: ")
+    try:
+        amount = float(input("Enter goal amount: "))
+    except ValueError:
+        print("Invalid amount. Please enter a number.")
+        return
+    
+    response = send_request("goal_tracker", "set_goal", {
+        "category": category,
+        "amount": amount
+    })
+
+    print(response['message'])
+    print("=====================================================")
+    print("Returning to Main Menu...")
+    print("=====================================================\n")
+
+def check_financial_goal():
+    print("\n=====================================================")
+    print("               CHECK FINANCIAL GOAL                   ")
+    print("=====================================================")
+    category = input("Enter category to check: ")
+    spent = sum(t['amount'] for t in transactions if t['category'].lower() == category.lower())
+
+    response = send_request("goal_tracker", "check_goal", {
+        "category": category,
+        "spent": spent
+    })
+
+    if "error" in response:
+        print(f"Error: {response['error']}")
+    else:
+        print(f"Goal: ${response['goal']:.2f}")
+        print(f"Spent: ${response['spent']:.2f}")
+        print(f"Remaining: ${response['remaining']:.2f}")
+        print(f"Status: {response['status']}")
+
+    print("=====================================================")
+    print("Returning to Main Menu...")
+    print("=====================================================\n")
+
+def export_data():
+    print("\n=====================================================")
+    print("                 EXPORT DATA                          ")
+    print("=====================================================")
+    
+    response = send_request("data_export", "export_csv", transactions)
+    
+    if "error" in response:
+        print(f"Error: {response['error']}")
+    else:
+        filename = "transactions_export.csv"
+        with open(filename, "w") as f:
+            f.write(response['csv_data'])
+        print(f"Data exported successfully to {filename}")
+    
+    print("=====================================================")
+    print("Returning to Main Menu...")
+    print("=====================================================\n")
 
 def main_menu():
     print("""
@@ -226,7 +321,11 @@ def main_menu():
         print("[2] View Transactions")
         print("[3] Edit Transaction")
         print("[4] Convert Currency")
-        print("[5] Exit")
+        print("[5] View Financial Report")
+        print("[6] Set Financial Goal")
+        print("[7] Check Financial Goal")
+        print("[8] Export Data")
+        print("[9] Exit")
         print("=====================================================")
         choice = input("Select an option by entering a number: ")
         print("")
@@ -240,6 +339,14 @@ def main_menu():
         elif choice == '4':
             convert_currency()
         elif choice == '5':
+            view_financial_report()
+        elif choice == '6':
+            set_financial_goal()
+        elif choice == '7':
+            check_financial_goal()
+        elif choice == '8':
+            export_data()
+        elif choice == '9':
             print("Exiting application.")
             print("=====================================================\n")
             break
@@ -247,17 +354,51 @@ def main_menu():
             print("Invalid option. Please try again.")
             print("=====================================================\n")
 
-
-
-
-
 def cleanup():
     context.term()
 
-
+def add_example_transactions():
+    global transaction_id_counter
+    example_transactions = [
+        {
+            "id": transaction_id_counter,
+            "date": "2024-08-01",
+            "amount": 52.50,
+            "category": "Groceries"
+        },
+        {
+            "id": transaction_id_counter + 1,
+            "date": "2024-08-03",
+            "amount": 9.99,
+            "category": "Subscription"
+        },
+        {
+            "id": transaction_id_counter + 2,
+            "date": "2024-08-05",
+            "amount": 35.00,
+            "category": "Dining Out"
+        },
+        {
+            "id": transaction_id_counter + 3,
+            "date": "2024-08-07",
+            "amount": 120.00,
+            "category": "Utilities"
+        },
+        {
+            "id": transaction_id_counter + 4,
+            "date": "2024-08-10",
+            "amount": 60.75,
+            "category": "Clothing"
+        }
+    ]
+    
+    transactions.extend(example_transactions)
+    transaction_id_counter += len(example_transactions)
+    print(f"{len(example_transactions)} example transactions added.")
 
 if __name__ == "__main__":
     try:
+        add_example_transactions()
         main_menu()
     finally:
         cleanup()
