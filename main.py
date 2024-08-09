@@ -1,5 +1,18 @@
 import re
 import datetime
+import zmq
+
+context = zmq.Context()
+
+def send_request(service, action, data=None):
+    socket = context.socket(zmq.REQ)
+    socket.connect(f"ipx:///tmp/{service}")
+    request = {"action": action, "data": data}
+    socket.send_json(request)
+    response = socket.recv_json()
+    socket.close()
+    return response
+
 
 transactions = []
 transaction_id_counter = 1
@@ -165,6 +178,34 @@ def edit_transaction():
     print("Returning to Main Menu...")
     print("=====================================================\n")
 
+def convert_currency():
+    print("\n=====================================================")
+    print("                CURRENCY CONVERTER                    ")
+    print("=====================================================")
+    source_currency = input("Enter source currency code: ").upper()
+    target_currency = input("Enter target currency code: ").upper()
+    try:
+        amount = float(input("ENter amount to convert: "))
+    except ValueError:
+        print("Invalid amount. Please enter a number.")
+        return
+    
+    respone = send_request("currency_converter", "convert_currency", {
+        "source_currency": source_currency,
+        "target_currency": target_currency,
+        "amount": amount
+    })
+
+    if "error" in response:
+        print(f"Error: {reponse['error']}")
+    else:
+        print(f"{amount} {source_currency} = {response['converted_amount']:.2f} {target_currency}")
+    
+    print("=====================================================")
+    print("Returning to Main Menu...")
+    print("=====================================================\n")
+
+
 def main_menu():
     print("""
 
@@ -184,7 +225,8 @@ def main_menu():
         print("[1] Add Transaction")
         print("[2] View Transactions")
         print("[3] Edit Transaction")
-        print("[4] Exit")
+        print("[4] Convert Currency")
+        print("[5] Exit")
         print("=====================================================")
         choice = input("Select an option by entering a number: ")
         print("")
@@ -196,6 +238,8 @@ def main_menu():
         elif choice == '3':
             edit_transaction()
         elif choice == '4':
+            convert_currency()
+        elif choice == '5':
             print("Exiting application.")
             print("=====================================================\n")
             break
@@ -203,5 +247,17 @@ def main_menu():
             print("Invalid option. Please try again.")
             print("=====================================================\n")
 
+
+
+
+
+def cleanup():
+    context.term()
+
+
+
 if __name__ == "__main__":
-    main_menu()
+    try:
+        main_menu()
+    finally:
+        cleanup()
