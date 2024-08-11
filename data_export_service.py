@@ -9,7 +9,9 @@ def export_to_csv(transactions):
     writer.writeheader()
     for transaction in transactions:
         writer.writerow(transaction)
+    print("Data exported...")
     return output.getvalue()
+
 
 context = zmq.Context()
 socket = context.socket(zmq.REP)

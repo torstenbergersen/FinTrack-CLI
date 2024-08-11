@@ -12,7 +12,9 @@ def generate_report(transactions):
         "total_spending": total_spending,
         "category_breakdown": dict(category_spending)
     }
+    print("Report generated...")
     return report
+
 
 context = zmq.Context()
 socket = context.socket(zmq.REP)

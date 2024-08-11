@@ -5,6 +5,7 @@ goals = {}
 
 def set_goal(data):
     goals[data['category']] = data['amount']
+    print("Goal set...")
     return {"message": "Goal set successfully"}
 
 def check_goal(data):
@@ -14,12 +15,14 @@ def check_goal(data):
         return {"error": "No goal set for this category"}
     goal = goals[category]
     remaining = goal - spent
+    print("Goal status checked...")
     return {
         "goal": goal,
         "spent": spent,
         "remaining": remaining,
         "status": "On track" if remaining > 0 else "Exceeded"
     }
+    
 
 context = zmq.Context()
 socket = context.socket(zmq.REP)

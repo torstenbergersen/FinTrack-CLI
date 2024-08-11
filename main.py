@@ -388,7 +388,7 @@ def add_example_transactions():
             "id": transaction_id_counter + 4,
             "date": "2024-08-10",
             "amount": 60.75,
-            "category": "Clothing"
+            "category": "Groceries"
         }
     ]
     
